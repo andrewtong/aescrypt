@@ -1,0 +1,5 @@
+8/25/2015
+
+Corrected code issues related to Rijndael's algorithm within the program.  Most errors seem to be synxtax issues or type 
+casting related which have been fixed.  The next step is to ensure that the program is capable of readng and writing from and to 
+binary files correctly.
