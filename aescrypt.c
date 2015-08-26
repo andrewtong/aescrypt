@@ -11,10 +11,9 @@
 typedef uint8_t state_t[4][4];
 static state_t* state;
 
-typedef uint8_t round_t[4][44];
-static round_t* roundkey;
+static uint8_t roundkey[4][44];
 
-static const uint8_t* cipherkey[16];
+static const uint8_t* cipherkey;
 
 
 
@@ -70,10 +69,10 @@ static void RoundKeyExpansion (void){
     int i, j, k;
     uint8_t placeholder[4];
     for (i = 0; i < Columncount; i++){
-        roundkey[Columncount][0] = cipherkey[Columncount*4 + 0];
-        roundkey[Columncount][1] = cipherkey[Columncount*4 + 1];
-        roundkey[Columncount][2] = cipherkey[Columncount*4 + 2];
-        roundkey[Columncount][3] = cipherkey[Columncount*4 + 3];
+        roundkey[0][i] = cipherkey[i*4 + 0];
+        roundkey[1][i] = cipherkey[i*4 + 1];
+        roundkey[2][i] = cipherkey[i*4 + 2];
+        roundkey[3][i] = cipherkey[i*4 + 3];
     }
 
 //Take last existing column, solve for the remainder of the round keys
@@ -82,7 +81,7 @@ static void RoundKeyExpansion (void){
 
 //Aggregate of one, because these are to count from 1 to 10, as 0 was solved above
     for (i = 0; i < Rounds * Columncount; i++){
-        for (j = 0, j < 4, j++){
+        for (j = 0; j < 4; j++){
             placeholder[j] = roundkey[j][i];
         }
         //Now if the column count is divisible by 4, then you rotate the last letter to the start
@@ -206,16 +205,25 @@ static void AddRoundKey(uint8_t round){
 
 }
 
+static void SubstituteBytes(void){
+    int i, j;
+    for (i = 0; i < 4; i++){
+        for (j = 0; j < 4; j++){
+            (*state)[j][i]  = SBoxSub((*state)[j][i]);
+        }
+    }
+}
+
 static void EncryptRounds(void){
     int i;
     AddRoundKey(0);
     for (i = 1; i < Rounds; i++){
-        SBoxSub();
+        SubstituteBytes();
         ShiftRows();
         MixColumns();
         AddRoundKey(i);
     }
-    SBoxSub();
+    SubstituteBytes();
     ShiftRows();
     AddRoundKey(i);
 }
@@ -243,14 +251,14 @@ int converthexvalue(uint8_t h){
 int main(int argc, char *argv[])
 {
     //Retrieve Key
-    FILE *keydata = fopen("cipher.txt", "rt")
+    FILE *keydata = fopen("cipher.txt", "rt");
     uint8_t leftvalue, rightvalue, hexvalue;
     int i;
     for (i = 0; i < 16; i++){
         leftvalue = converthexvalue(fgetc(keydata));
         rightvalue = converthexvalue(fgetc(keydata));
         hexvalue = leftvalue << 4 | rightvalue;
-        cipherkey[i] = hexvalue;
+        cipherkey = hexvalue;
     }
     fclose(keydata);
 
