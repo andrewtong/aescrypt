@@ -1,3 +1,36 @@
+9/9/2015
+
+Binary File I/O:
+- For reliability purposes, the file directories are now absolutes.  This means that the user should configure the 'basedirectory'
+variable to the folder where the source code, cipher text file, and binary file to be encrypted/decrypted are located.  This 
+change may be altered in the future if a better method can be found.
+
+- The code can now accurately read and write to files without any issues.  The cipher key is to be written in a text format, 
+while the binary file is to be sourced from hex/binary.  The output result is by default written to a file called 'output', 
+although this may be changed by the user.  Similarly, the output file is to be written in binary format.
+
+- The cipher key reads the first 32 characters in the cipher text and renders it as 16 hex characters.  
+
+- Fixed general issues of the code not correctly writing to the output file (essentially fixed by using a reference to the 
+state variable).
+
+Rijndael's Algorithm:
+
+- Fixed consistency issues regarding the indexing of arrays. (i.e. counting starting going down the array or going right)
+
+- Fixed several issues regarding how the round key expansion works. (first round being a copy of cipher key, correction for
+every 4th round, xor's for the correct columns)
+
+- There was a minor oversight with how AddRoundKey worked, which did not correctly compute the current round to be added.
+
+General Syntax:
+
+- State is no longer a pointer array due to issues being able to assign the array elements of state hex characters.  (I'm 
+sure there is a workaround solution to this, so it max be fixed in the future)
+
+- The encrypt option now works correctly.  Decrypting binary files is likely to be similar, so it will likely be implemented
+soon.
+
 8/25/2015
 
 Corrected code issues related to Rijndael's algorithm within the program.  Most errors seem to be synxtax issues or type 
