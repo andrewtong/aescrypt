@@ -8,12 +8,15 @@
 
 //NOTE THAT FOR 2D ARRAYS, MATRICES ARE COUNTED BY I,J, WHERE I IS THE ROW, AND J IS THE COLUMN!
 
-typedef uint8_t state_t[4][4];
-static state_t* state;
+//typedef uint8_t state_t[4][4];
+//static state_t* state;
+
+static uint8_t state[8][8];
+
 
 static uint8_t roundkey[4][44];
 
-static const uint8_t* cipherkey;
+static uint8_t cipherkey[16];
 
 
 
@@ -69,55 +72,68 @@ static void RoundKeyExpansion (void){
     int i, j, k;
     uint8_t placeholder[4];
     for (i = 0; i < Columncount; i++){
-        roundkey[0][i] = cipherkey[i*4 + 0];
-        roundkey[1][i] = cipherkey[i*4 + 1];
-        roundkey[2][i] = cipherkey[i*4 + 2];
-        roundkey[3][i] = cipherkey[i*4 + 3];
+        roundkey[0][i] = cipherkey[4*i + 0];
+        roundkey[1][i] = cipherkey[4*i + 1];
+        roundkey[2][i] = cipherkey[4*i + 2];
+        roundkey[3][i] = cipherkey[4*i + 3];
+
+
     }
+
+
 
 //Take last existing column, solve for the remainder of the round keys
 //Note that first column is a swap, substitution with Rcon, than add
 //The remainder of the columns are addition to Rcon
 
 //Aggregate of one, because these are to count from 1 to 10, as 0 was solved above
-    for (i = 0; i < Rounds * Columncount; i++){
-        for (j = 0; j < 4; j++){
-            placeholder[j] = roundkey[j][i];
-        }
+    for (i = 4; i < (Rounds + 1) * Columncount; i++){
+
         //Now if the column count is divisible by 4, then you rotate the last letter to the start
         //column count is equal to i
 
         //Afterwards, you then perform a s box substitution
         if (i % 4 == 0){
+            for (j = 0; j < 4; j++){
+                placeholder[j] = roundkey[j][i-1];
+            }
             uint8_t tempholder;
             tempholder = placeholder[0];
-            for (k = 1; k < 4; k++){
-                placeholder[k-1] = placeholder[k];
-            }
+            placeholder[0] = placeholder[1];
+            placeholder[1] = placeholder[2];
+            placeholder[2] = placeholder[3];
             placeholder[3] = tempholder;
+//            printf("%02X", placeholder[0]);
+//            printf("%02X", placeholder[1]);
+//            printf("%02X", placeholder[2]);
+//            printf("%02X\n", placeholder[3]);
 
             placeholder[0] = SBoxSub(placeholder[0]);
             placeholder[1] = SBoxSub(placeholder[1]);
             placeholder[2] = SBoxSub(placeholder[2]);
             placeholder[3] = SBoxSub(placeholder[3]);
+//            printf("lalalalalalalallalaal\n");
+//            printf("%02X", placeholder[0]);
+//            printf("%02X", placeholder[1]);
+//            printf("%02X", placeholder[2]);
+//            printf("%02X\n", placeholder[3]);
 
             //Rcon [1x4] is then added to all columns that are of multiple of 4 (AKA start of each round key)
             //Note that only the first index of Rcon is non zero, and that 0x8d (Rcon[0]) is skipped!
             //Round Key 1 would include 0x01 to the first hex value
 
             placeholder[0] = placeholder[0] ^ Rcon[i/4];
-        } else { //case where round*column count is now a multiple of 4
-            //do nothing
+
+            roundkey[0][i] = placeholder[0] ^ roundkey[0][i - 4];
+            roundkey[1][i] = placeholder[1] ^ roundkey[1][i - 4];
+            roundkey[2][i] = placeholder[2] ^ roundkey[2][i - 4];
+            roundkey[3][i] = placeholder[3] ^ roundkey[3][i - 4];
+        } else {
+            roundkey[0][i] = roundkey[0][i-4] ^ roundkey[0][i - 1];
+            roundkey[1][i] = roundkey[1][i-4] ^ roundkey[1][i - 1];
+            roundkey[2][i] = roundkey[2][i-4] ^ roundkey[2][i - 1];
+            roundkey[3][i] = roundkey[3][i-4] ^ roundkey[3][i - 1];
         }
-
-
-        // For all cases, you add the previous respective column (4 columns back) to the current column
-        // Equals out to 3 columns back since you are solving for the 4th column
-
-        roundkey[0][i + 1] = placeholder[0] ^ roundkey[0][i - 3];
-        roundkey[1][i + 1] = placeholder[1] ^ roundkey[1][i - 3];
-        roundkey[2][i + 1] = placeholder[2] ^ roundkey[2][i - 3];
-        roundkey[3][i + 1] = placeholder[3] ^ roundkey[3][i - 3];
     }
 
 
@@ -143,26 +159,26 @@ static void ShiftRows(void){
 
     uint8_t rowholder[1][3];
 
-    rowholder[0][0] = *state[1][0];
-    *state[1][0] = *state[1][1];
-    *state[1][1] = *state[1][2];
-    *state[1][2] = *state[1][3];
-    *state[1][3] = rowholder[0][0];
+    rowholder[0][0] = state[1][0];
+    state[1][0] = state[1][1];
+    state[1][1] = state[1][2];
+    state[1][2] = state[1][3];
+    state[1][3] = rowholder[0][0];
 
-    rowholder[0][0] = *state[2][0];
-    rowholder[0][1] = *state[2][1];
-    *state[2][0] = *state[2][2];
-    *state[2][1] = *state[2][3];
-    *state[2][2] = rowholder[0][0];
-    *state[2][3] = rowholder[0][1];
+    rowholder[0][0] = state[2][0];
+    rowholder[0][1] = state[2][1];
+    state[2][0] = state[2][2];
+    state[2][1] = state[2][3];
+    state[2][2] = rowholder[0][0];
+    state[2][3] = rowholder[0][1];
 
-    rowholder[0][0] = *state[3][0];
-    rowholder[0][1] = *state[3][1];
-    rowholder[0][2] = *state[3][2];
-    *state[3][0] = *state[3][3];
-    *state[3][1] = rowholder[0][0];
-    *state[3][2] = rowholder[0][1];
-    *state[3][3] = rowholder[0][2];
+    rowholder[0][0] = state[3][0];
+    rowholder[0][1] = state[3][1];
+    rowholder[0][2] = state[3][2];
+    state[3][0] = state[3][3];
+    state[3][1] = rowholder[0][0];
+    state[3][2] = rowholder[0][1];
+    state[3][3] = rowholder[0][2];
 
 }
 
@@ -182,24 +198,30 @@ static void MixColumns(void){
     int i, j;
     for (i = 0; i < 4; i++){
         for (j = 0; j < 4; j++){
-            singlestate[j][i] = *state[j][i];
-            tempholder = (unsigned char)((signed char)*state[j][i] >> 7);
-            doublestate[j][i] = *state[j][i] << 1;
+            singlestate[j][i] = state[j][i];
+            tempholder = (unsigned char)((signed char)state[j][i] >> 7);
+            doublestate[j][i] = state[j][i] << 1;
             doublestate[j][i] ^= 0x1B & tempholder;
         }
-        *state[0][i] = doublestate[0][i] ^ singlestate[3][i] ^ singlestate[2][i] ^ doublestate[1][i] ^ singlestate[1][i];
-        *state[1][i] = doublestate[1][i] ^ singlestate[0][i] ^ singlestate[3][i] ^ doublestate[2][i] ^ singlestate[2][i];
-        *state[2][i] = doublestate[2][i] ^ singlestate[1][i] ^ singlestate[0][i] ^ doublestate[3][i] ^ singlestate[3][i];
-        *state[3][i] = doublestate[3][i] ^ singlestate[2][i] ^ singlestate[1][i] ^ doublestate[0][i] ^ singlestate[0][i];
+        state[0][i] = doublestate[0][i] ^ singlestate[3][i] ^ singlestate[2][i] ^ doublestate[1][i] ^ singlestate[1][i];
+        state[1][i] = doublestate[1][i] ^ singlestate[0][i] ^ singlestate[3][i] ^ doublestate[2][i] ^ singlestate[2][i];
+        state[2][i] = doublestate[2][i] ^ singlestate[1][i] ^ singlestate[0][i] ^ doublestate[3][i] ^ singlestate[3][i];
+        state[3][i] = doublestate[3][i] ^ singlestate[2][i] ^ singlestate[1][i] ^ doublestate[0][i] ^ singlestate[0][i];
 
     }
+
+//    for (i = 0 ; i< 4; i++){
+//        for (j = 0; j < 4; j++){
+//            printf("%02X", state[j][i]);
+//        }
+//    }
 }
 
-static void AddRoundKey(uint8_t round){
+static void AddRoundKey(int round){
     int i, j;
     for (i = 0; i < 4; i++){
         for ( j = 0; j < 4; j++){
-            *state[j][i] ^= roundkey[j][i];
+            state[j][i] ^= roundkey[j][i + 4*round];
         }
     }
 
@@ -209,19 +231,22 @@ static void SubstituteBytes(void){
     int i, j;
     for (i = 0; i < 4; i++){
         for (j = 0; j < 4; j++){
-            (*state)[j][i]  = SBoxSub((*state)[j][i]);
+            (state)[i][j]  = SBoxSub((state)[i][j]);
         }
     }
 }
 
 static void EncryptRounds(void){
     int i;
+    int j, k;
+    RoundKeyExpansion();
     AddRoundKey(0);
     for (i = 1; i < Rounds; i++){
         SubstituteBytes();
         ShiftRows();
         MixColumns();
         AddRoundKey(i);
+
     }
     SubstituteBytes();
     ShiftRows();
@@ -233,7 +258,7 @@ static void DecryptRounds(void){
 
 
 //d - decrypt (d, file, output file location) - outputs decrypted file
-//e - encrypt (e, file, output file location) - outputs encrypted file
+//e - encrypt (e, cipher, file, output file location) - outputs encrypted file
 //r - retrieve directories (r, file) - outputs as text(?)
 //s - specific directory retrieval (s, file, specific directory, output file location)
 
@@ -248,50 +273,103 @@ int converthexvalue(uint8_t h){
     return value;
 }
 
-int main(int argc, char *argv[])
-{
+
+int main(int argc, char *argv[]){
+    uint8_t temperino;
+    temperino = SBoxSub(0x19);
+    printf("%02X\n", temperino);
     //Retrieve Key
-    FILE *keydata = fopen("cipher.txt", "rt");
+    char *cipherdirectory;
+    char *targetdirectory;
+    char *basedirectory = "C:\\Users\\Andrew\\cworkspace\\AESdecrypt\\";
+
+    if((cipherdirectory = malloc(strlen(basedirectory)+strlen(argv[2])+1)) != NULL){
+    cipherdirectory[0] = '\0';   // ensures the memory is an empty string
+    strcat(cipherdirectory, basedirectory);
+    strcat(cipherdirectory, argv[2]);
+    } else {
+        perror("Error");
+        printf("Error occurred with allocating memory while searching for cipher key.");
+    }
+    printf(cipherdirectory);
+    FILE *keydata = fopen(cipherdirectory, "rt");
+    if (keydata == NULL){
+        perror("Error");
+        printf("Error occurred while retrieving cipher key.");
+        return 0;
+    }
     uint8_t leftvalue, rightvalue, hexvalue;
     int i;
     for (i = 0; i < 16; i++){
         leftvalue = converthexvalue(fgetc(keydata));
         rightvalue = converthexvalue(fgetc(keydata));
         hexvalue = leftvalue << 4 | rightvalue;
-        cipherkey = hexvalue;
+        cipherkey[i] = hexvalue;
     }
     fclose(keydata);
 
+    //Test to determine if cipher is read correctly
+    for (i = 0; i < 16; i++){
+        printf("%02X", cipherkey[i]);
+    }
 
-    if (argv[1] == std::string("d") && argc == 4){
-        //perform decrption
+    printf(argv[1]);
+    printf( "argc = %d\n", argc );
 
-    } else if (argv[1] == std::string("e") && argc == 4){
+    if (strcmp(argv[1], "d") == 0 && argc == 4){
+        //perform decrpytion
+
+    } else if (strcmp(argv[1], "e") == 0 && argc == 4){
+
         //perform encryption
+        if((targetdirectory = malloc(strlen(basedirectory)+strlen(argv[3])+1)) != NULL){
+        targetdirectory[0] = '\0';   // ensures the memory is an empty string
+        strcat(targetdirectory, basedirectory);
+        strcat(targetdirectory, argv[3]);
+        printf(targetdirectory);
+        } else {
+            perror("Error");
+            printf("Error occurred with allocating memory while searching for binary file.");
+        }
 
-        File *inputfile, *outputfile;
-        uint8_t *file = argv[2];
-        inputfile = fopen(file, "rb");
+        FILE *inputfile, *outputfile;
+        //char file = argv[2];
+        inputfile = fopen(targetdirectory, "rb");
+        outputfile = fopen("output", "ab+");
         if (inputfile == NULL){
+            perror("Error");
             printf("Error occurred while opening file.");
             return 0;
         }
         int counted = 0;
         int read = 0;
         uint8_t buffer[16];
+        int i;
         while((read = fread(buffer, 1, 16, inputfile)) > 0){
+        //printf("%d\n", read);
+
             for(i=0; i < 16; i++){
                 if (read != EOF){
-                    state[(int)i/4][i%4] = (uint8_t)buffer[i];
+                    //memcpy(*state[(int)i/4][(int)i%4], &buffer[i], sizeof(buffer[i]));
+                    state[i%4][(int)i/4] = buffer[i];
+                    //counted += 1;
+
                 } else {
-                    state[(int)i/4][i%4] = (uint8_t)0x00;
+                    state[i%4][(int)i/4] = (uint8_t)0x00;
                 }
             }
-            #Perform rijndaels with the current state
+            //Perform rijndaels with the current state
+            EncryptRounds();
 
-            EncryptRounds()
+            //Scan for keywords
 
-        fclose(fp);
+            //Write to file
+
+            for(i=0; i < 16; i++){
+                //printf("%02X", state[i%4][(int)i/4]);
+                fwrite(&state[i%4][(int)i/4],sizeof(uint8_t), 1, outputfile);
+            }
+
         }
 
 
@@ -302,10 +380,13 @@ int main(int argc, char *argv[])
 //    } else if (argv[1] == std::string("s") && argc == 5){
 //        //performs specific directory retrieval
 
+    fclose(inputfile);
+    fclose(outputfile);
+
     } else {
-        printf( "Invalid input parameters\n" );
+        printf( "Invalid input parameters.\n" );
     }
-    return 0
+    return 0;
 }
 
 
