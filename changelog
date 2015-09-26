@@ -4,7 +4,7 @@ Binary File I/O:
 -Padding correctly functions now if a state consisting of 16 bytes receives an input of 15 bytes or less.  The hex value 0x00
 is padded onto the end for such scenarions.
 
-Inverse Rijndael's Algorithm:
+Inverse Rijndael's Algorithm/Decryption:
 -Finally figured out an efficient way of solving inverse mix columns.  This arguably took the longest period of time as the
 method for approaching this is not very intuitive and requires using the field representation 0x1B whenever the highest bit
 (leftmost bit in a byte) is a 1.
@@ -22,6 +22,14 @@ Decryption: name.exe d cipher.txt binary.bin
 Both are still registered to write into the file output.bin, although this is avaliable for alternations within the code.
 
 -Output.bin is now cleared of its contents before it is written into (case where output.bin already has bytes written within)
+
+-The executable now reads the number of inputs first prior as opposed to whether it performs an encryption/decryption/scan
+and therefore operates more efficiently since it eliminates operation types by number type which is a check that can be done
+in constant time.  Afterwards, it takes the remainder of the operations and scans from there, making it the executable
+slightly more efficient.
+
+-A function PrintState has been added, which can be used by those who want to edit the source code to easily check the current
+state values during operation.
 
 9/9/2015
 
