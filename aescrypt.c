@@ -5,20 +5,11 @@
 #include <string.h>
 //#include header file
 
-
 //NOTE THAT FOR 2D ARRAYS, MATRICES ARE COUNTED BY I,J, WHERE I IS THE ROW, AND J IS THE COLUMN!
 
-//typedef uint8_t state_t[4][4];
-//static state_t* state;
-
 static uint8_t state[8][8];
-
-
 static uint8_t roundkey[4][44];
-
 static uint8_t cipherkey[16];
-
-
 
 #define Columncount 4
 #define Cipherkeylength 16
@@ -43,6 +34,24 @@ static const uint8_t sbox[256] =   {
   0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf,
   0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16 };
 
+static const uint8_t inversesbox[256] =
+{ 0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb,
+  0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb,
+  0x54, 0x7b, 0x94, 0x32, 0xa6, 0xc2, 0x23, 0x3d, 0xee, 0x4c, 0x95, 0x0b, 0x42, 0xfa, 0xc3, 0x4e,
+  0x08, 0x2e, 0xa1, 0x66, 0x28, 0xd9, 0x24, 0xb2, 0x76, 0x5b, 0xa2, 0x49, 0x6d, 0x8b, 0xd1, 0x25,
+  0x72, 0xf8, 0xf6, 0x64, 0x86, 0x68, 0x98, 0x16, 0xd4, 0xa4, 0x5c, 0xcc, 0x5d, 0x65, 0xb6, 0x92,
+  0x6c, 0x70, 0x48, 0x50, 0xfd, 0xed, 0xb9, 0xda, 0x5e, 0x15, 0x46, 0x57, 0xa7, 0x8d, 0x9d, 0x84,
+  0x90, 0xd8, 0xab, 0x00, 0x8c, 0xbc, 0xd3, 0x0a, 0xf7, 0xe4, 0x58, 0x05, 0xb8, 0xb3, 0x45, 0x06,
+  0xd0, 0x2c, 0x1e, 0x8f, 0xca, 0x3f, 0x0f, 0x02, 0xc1, 0xaf, 0xbd, 0x03, 0x01, 0x13, 0x8a, 0x6b,
+  0x3a, 0x91, 0x11, 0x41, 0x4f, 0x67, 0xdc, 0xea, 0x97, 0xf2, 0xcf, 0xce, 0xf0, 0xb4, 0xe6, 0x73,
+  0x96, 0xac, 0x74, 0x22, 0xe7, 0xad, 0x35, 0x85, 0xe2, 0xf9, 0x37, 0xe8, 0x1c, 0x75, 0xdf, 0x6e,
+  0x47, 0xf1, 0x1a, 0x71, 0x1d, 0x29, 0xc5, 0x89, 0x6f, 0xb7, 0x62, 0x0e, 0xaa, 0x18, 0xbe, 0x1b,
+  0xfc, 0x56, 0x3e, 0x4b, 0xc6, 0xd2, 0x79, 0x20, 0x9a, 0xdb, 0xc0, 0xfe, 0x78, 0xcd, 0x5a, 0xf4,
+  0x1f, 0xdd, 0xa8, 0x33, 0x88, 0x07, 0xc7, 0x31, 0xb1, 0x12, 0x10, 0x59, 0x27, 0x80, 0xec, 0x5f,
+  0x60, 0x51, 0x7f, 0xa9, 0x19, 0xb5, 0x4a, 0x0d, 0x2d, 0xe5, 0x7a, 0x9f, 0x93, 0xc9, 0x9c, 0xef,
+  0xa0, 0xe0, 0x3b, 0x4d, 0xae, 0x2a, 0xf5, 0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61,
+  0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d };
+
 static const uint8_t Rcon[256] = {
   0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36, 0x6c, 0xd8, 0xab, 0x4d, 0x9a,
   0x2f, 0x5e, 0xbc, 0x63, 0xc6, 0x97, 0x35, 0x6a, 0xd4, 0xb3, 0x7d, 0xfa, 0xef, 0xc5, 0x91, 0x39,
@@ -65,6 +74,9 @@ static uint8_t SBoxSub (uint8_t hex){
     return sbox[hex];
 }
 
+static uint8_t ISBoxSub (uint8_t hex){
+    return inversesbox[hex];
+}
 
 static void RoundKeyExpansion (void){
 
@@ -76,11 +88,7 @@ static void RoundKeyExpansion (void){
         roundkey[1][i] = cipherkey[4*i + 1];
         roundkey[2][i] = cipherkey[4*i + 2];
         roundkey[3][i] = cipherkey[4*i + 3];
-
-
     }
-
-
 
 //Take last existing column, solve for the remainder of the round keys
 //Note that first column is a swap, substitution with Rcon, than add
@@ -103,20 +111,11 @@ static void RoundKeyExpansion (void){
             placeholder[1] = placeholder[2];
             placeholder[2] = placeholder[3];
             placeholder[3] = tempholder;
-//            printf("%02X", placeholder[0]);
-//            printf("%02X", placeholder[1]);
-//            printf("%02X", placeholder[2]);
-//            printf("%02X\n", placeholder[3]);
 
             placeholder[0] = SBoxSub(placeholder[0]);
             placeholder[1] = SBoxSub(placeholder[1]);
             placeholder[2] = SBoxSub(placeholder[2]);
             placeholder[3] = SBoxSub(placeholder[3]);
-//            printf("lalalalalalalallalaal\n");
-//            printf("%02X", placeholder[0]);
-//            printf("%02X", placeholder[1]);
-//            printf("%02X", placeholder[2]);
-//            printf("%02X\n", placeholder[3]);
 
             //Rcon [1x4] is then added to all columns that are of multiple of 4 (AKA start of each round key)
             //Note that only the first index of Rcon is non zero, and that 0x8d (Rcon[0]) is skipped!
@@ -182,6 +181,35 @@ static void ShiftRows(void){
 
 }
 
+static void InverseShiftRows(void){
+    //ShiftRows, but backwards
+    uint8_t inverserowholder[1][3];
+
+    //Shift second row all elements right once, rotate over
+    inverserowholder[0][0] = state[1][3];
+    state[1][3] = state[1][2];
+    state[1][2] = state[1][1];
+    state[1][1] = state[1][0];
+    state[1][0] = inverserowholder[0][0];
+
+    //Shift third row to the right twice, rotate over
+    inverserowholder[0][0] = state[2][3];
+    inverserowholder[0][1] = state[2][2];
+    state[2][3] = state[2][1];
+    state[2][2] = state[2][0];
+    state[2][1] = inverserowholder[0][0];
+    state[2][0] = inverserowholder[0][1];
+
+    //Shift fourth row to the right three times, rotate over
+    inverserowholder[0][0] = state[3][3];
+    inverserowholder[0][1] = state[3][2];
+    inverserowholder[0][2] = state[3][1];
+    state[3][3] = state[3][0];
+    state[3][2] = inverserowholder[0][0];
+    state[3][1] = inverserowholder[0][1];
+    state[3][0] = inverserowholder[0][2];
+}
+
 //MixColumns multiplies a column of 4 bytes by a 4x4 matrix of the form
 //{ 02 03 01 01
 //  01 02 03 01
@@ -209,12 +237,114 @@ static void MixColumns(void){
         state[3][i] = doublestate[3][i] ^ singlestate[2][i] ^ singlestate[1][i] ^ doublestate[0][i] ^ singlestate[0][i];
 
     }
+}
 
-//    for (i = 0 ; i< 4; i++){
-//        for (j = 0; j < 4; j++){
-//            printf("%02X", state[j][i]);
-//        }
-//    }
+//InverseMixColumns multiplies a column of 4 bytes by a 4x4 matrix of the form
+//{ 14 11 13 09
+//  09 14 11 13
+//  13 09 14 11
+//  11 13 09 14 }
+
+//Method referenced from https://github.com/kokke/tiny-AES128-C/blob/master/aes.c
+//To do this, a function Multiply is defined using bit shifts
+//This may be edited out later for another method,
+
+//http://crypto.stackexchange.com/questions/2569/how-does-one-implement-the-inverse-of-aes-mixcolumns
+static uint8_t Multiply(uint8_t x, int y){
+    uint8_t returnvalue, highbit;
+
+    if (y == 9){
+        // (((x * 2) * 2) * 2) + x
+        highbit = (unsigned char)((signed char)x >> 7);
+        returnvalue = x << 1;
+        returnvalue  ^= 0x1B & highbit;
+
+        highbit = (unsigned char)((signed char)returnvalue >> 7);
+        returnvalue = returnvalue << 1;
+        returnvalue ^= 0x1B & highbit;
+
+        highbit = (unsigned char)((signed char)returnvalue >> 7);
+        returnvalue = returnvalue << 1;
+        returnvalue ^= 0x1B & highbit;
+
+        returnvalue ^= x;
+
+
+    } else if (y == 11) {
+        //((((x * 2) * 2) + x) * 2) + x
+        highbit = (unsigned char)((signed char)x >> 7);
+        returnvalue = x << 1;
+        returnvalue  ^= 0x1B & highbit;
+
+        highbit = (unsigned char)((signed char)returnvalue >> 7);
+        returnvalue = returnvalue << 1;
+        returnvalue ^= 0x1B & highbit;
+
+        returnvalue ^= x;
+
+        highbit = (unsigned char)((signed char)returnvalue >> 7);
+        returnvalue = returnvalue << 1;
+        returnvalue ^= 0x1B & highbit;
+
+        returnvalue ^= x;
+
+    } else if (y == 13) {
+        //((((x * 2) + x) * 2) * 2) + x
+        highbit = (unsigned char)((signed char)x >> 7);
+        returnvalue = x << 1;
+        returnvalue  ^= 0x1B & highbit;
+
+        returnvalue ^= x;
+
+        highbit = (unsigned char)((signed char)returnvalue >> 7);
+        returnvalue = returnvalue << 1;
+        returnvalue ^= 0x1B & highbit;
+
+        highbit = (unsigned char)((signed char)returnvalue >> 7);
+        returnvalue = returnvalue << 1;
+        returnvalue ^= 0x1B & highbit;
+
+        returnvalue ^= x;
+
+    } else if (y == 14) {
+        //((((x * 2) + x) * 2) + x) * 2
+        highbit = (unsigned char)((signed char)x >> 7);
+        returnvalue = x << 1;
+        returnvalue  ^= 0x1B & highbit;
+
+        returnvalue ^= x;
+
+        highbit = (unsigned char)((signed char)returnvalue >> 7);
+        returnvalue = returnvalue << 1;
+        returnvalue ^= 0x1B & highbit;
+
+        returnvalue ^= x;
+
+        highbit = (unsigned char)((signed char)returnvalue >> 7);
+        returnvalue = returnvalue << 1;
+        returnvalue ^= 0x1B & highbit;
+
+    } else {
+        returnvalue = 0x00;
+    }
+
+    return returnvalue;
+}
+
+
+static void InverseMixColumns(void){
+    int i,j;
+    uint8_t tempholder[4];
+    for ( i = 0; i < 4; i++){
+        for ( j = 0; j < 4; j++){
+            tempholder[j] = state[j][i];
+
+        }
+        state[0][i] = Multiply(tempholder[0], 14) ^ Multiply(tempholder[1], 11) ^ Multiply(tempholder[2], 13) ^ Multiply(tempholder[3], 9);
+        state[1][i] = Multiply(tempholder[0], 9) ^ Multiply(tempholder[1], 14) ^ Multiply(tempholder[2], 11) ^ Multiply(tempholder[3], 13);
+        state[2][i] = Multiply(tempholder[0], 13) ^ Multiply(tempholder[1], 9) ^ Multiply(tempholder[2], 14) ^ Multiply(tempholder[3], 11);
+        state[3][i] = Multiply(tempholder[0], 11) ^ Multiply(tempholder[1], 13) ^ Multiply(tempholder[2], 9) ^ Multiply(tempholder[3], 14);
+    }
 }
 
 static void AddRoundKey(int round){
@@ -236,9 +366,28 @@ static void SubstituteBytes(void){
     }
 }
 
+static void InverseSubstituteBytes(void){
+    int i, j;
+    for (i = 0; i < 4; i++){
+        for (j = 0; j < 4; j++){
+            (state)[i][j]  = ISBoxSub((state)[i][j]);
+        }
+    }
+}
+
+static void PrintState(void){
+    int i,j;
+    printf("\n");
+    for (i = 0; i < 4; i++){
+        for (j = 0; j < 4; j++){
+            printf("%02X", state[j][i]);
+        }
+    }
+}
+
 static void EncryptRounds(void){
     int i;
-    int j, k;
+    PrintState();
     RoundKeyExpansion();
     AddRoundKey(0);
     for (i = 1; i < Rounds; i++){
@@ -253,7 +402,22 @@ static void EncryptRounds(void){
     AddRoundKey(i);
 }
 
+
 static void DecryptRounds(void){
+    int i;
+    RoundKeyExpansion();
+    AddRoundKey(10);
+    InverseShiftRows();
+    InverseSubstituteBytes();
+
+    for (i = 9; i > 0; i--){
+        AddRoundKey(i);
+        InverseMixColumns();
+        InverseShiftRows();
+        InverseSubstituteBytes();
+    }
+
+    AddRoundKey(i);
 }
 
 
@@ -275,9 +439,6 @@ int converthexvalue(uint8_t h){
 
 
 int main(int argc, char *argv[]){
-    uint8_t temperino;
-    temperino = SBoxSub(0x19);
-    printf("%02X\n", temperino);
     //Retrieve Key
     char *cipherdirectory;
     char *targetdirectory;
@@ -291,7 +452,7 @@ int main(int argc, char *argv[]){
         perror("Error");
         printf("Error occurred with allocating memory while searching for cipher key.");
     }
-    printf(cipherdirectory);
+
     FILE *keydata = fopen(cipherdirectory, "rt");
     if (keydata == NULL){
         perror("Error");
@@ -309,31 +470,21 @@ int main(int argc, char *argv[]){
     fclose(keydata);
 
     //Test to determine if cipher is read correctly
-    for (i = 0; i < 16; i++){
-        printf("%02X", cipherkey[i]);
-    }
+//    for (i = 0; i < 16; i++){
+//        printf("%02X", cipherkey[i]);
+//    }
 
-    printf(argv[1]);
-    printf( "argc = %d\n", argc );
-
-    if (strcmp(argv[1], "d") == 0 && argc == 4){
-        //perform decrpytion
-
-    } else if (strcmp(argv[1], "e") == 0 && argc == 4){
-
-        //perform encryption
+    if (argc == 4){
         if((targetdirectory = malloc(strlen(basedirectory)+strlen(argv[3])+1)) != NULL){
         targetdirectory[0] = '\0';   // ensures the memory is an empty string
         strcat(targetdirectory, basedirectory);
         strcat(targetdirectory, argv[3]);
-        printf(targetdirectory);
         } else {
             perror("Error");
             printf("Error occurred with allocating memory while searching for binary file.");
         }
 
         FILE *inputfile, *outputfile;
-        //char file = argv[2];
         inputfile = fopen(targetdirectory, "rb");
         outputfile = fopen("output", "ab+");
         if (inputfile == NULL){
@@ -345,46 +496,58 @@ int main(int argc, char *argv[]){
         int read = 0;
         uint8_t buffer[16];
         int i;
-        while((read = fread(buffer, 1, 16, inputfile)) > 0){
-        //printf("%d\n", read);
 
-            for(i=0; i < 16; i++){
-                if (read != EOF){
-                    //memcpy(*state[(int)i/4][(int)i%4], &buffer[i], sizeof(buffer[i]));
-                    state[i%4][(int)i/4] = buffer[i];
-                    //counted += 1;
+        if (strcmp(argv[1],"d") == 0){
+            while((read = fread(buffer, 1, 16, inputfile)) > 0){
+                for(i=0; i < 16; i++){
+                    if (read != EOF){
+                        //memcpy(*state[(int)i/4][(int)i%4], &buffer[i], sizeof(buffer[i]));
+                        state[i%4][(int)i/4] = buffer[i];
+                        //counted += 1;
 
-                } else {
-                    state[i%4][(int)i/4] = (uint8_t)0x00;
+                    } else {
+                        state[i%4][(int)i/4] = (uint8_t)0x00;
+                    }
                 }
+                //Perform rijndaels with the current state
+                DecryptRounds();
+
+                for(i=0; i < 16; i++){
+                    fwrite(&state[i%4][(int)i/4],sizeof(uint8_t), 1, outputfile);
+                }
+
             }
-            //Perform rijndaels with the current state
-            EncryptRounds();
+        } else if (strcmp(argv[1],"e") == 0){
+            while((read = fread(buffer, 1, 16, inputfile)) > 0){
+                printf("%d",read);
 
-            //Scan for keywords
+                for(i=0; i < 16; i++){
+                    if (i < read){
+                        //memcpy(*state[(int)i/4][(int)i%4], &buffer[i], sizeof(buffer[i]));
+                        state[i%4][(int)i/4] = buffer[i];
+                        //counted += 1;
 
-            //Write to file
+                    } else {
+                        printf("check");
+                        state[i%4][(int)i/4] = (uint8_t)0x00;
+                    }
+                }
+                //Perform rijndaels with the current state
+                EncryptRounds();
 
-            for(i=0; i < 16; i++){
-                //printf("%02X", state[i%4][(int)i/4]);
-                fwrite(&state[i%4][(int)i/4],sizeof(uint8_t), 1, outputfile);
+                for(i=0; i < 16; i++){
+                    fwrite(&state[i%4][(int)i/4],sizeof(uint8_t), 1, outputfile);
+                }
+
             }
 
+        } else {
+            printf( "Encryption or decryption has not been specified.\n" );
         }
-
-
-
-//    } else if (argv[1] == std::string("r") && argc == 3){
-//        //performs directory retrieval
-//
-//    } else if (argv[1] == std::string("s") && argc == 5){
-//        //performs specific directory retrieval
 
     fclose(inputfile);
     fclose(outputfile);
 
-    } else {
-        printf( "Invalid input parameters.\n" );
     }
     return 0;
 }
