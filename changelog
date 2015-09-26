@@ -1,3 +1,28 @@
+9/25/2015
+
+Binary File I/O:
+-Padding correctly functions now if a state consisting of 16 bytes receives an input of 15 bytes or less.  The hex value 0x00
+is padded onto the end for such scenarions.
+
+Inverse Rijndael's Algorithm:
+-Finally figured out an efficient way of solving inverse mix columns.  This arguably took the longest period of time as the
+method for approaching this is not very intuitive and requires using the field representation 0x1B whenever the highest bit
+(leftmost bit in a byte) is a 1.
+
+-Implemented inverse algorithms for the remainder of the steps as well.  A decryption is essentially an encryption performed
+backwards, and therefore many of the operations (e.x. S-Box substitutions or Shift Rows) are fairly straightforward
+when performed inversely.
+
+General Syntax
+-The option to decrypt binary files now is avaliable.  This is done in a similar format as the encrypt function via command
+line. An example would be the following:
+Encryption: name.exe e cipher.txt binary.bin
+Decryption: name.exe d cipher.txt binary.bin
+
+Both are still registered to write into the file output.bin, although this is avaliable for alternations within the code.
+
+-Output.bin is now cleared of its contents before it is written into (case where output.bin already has bytes written within)
+
 9/9/2015
 
 Binary File I/O:
