@@ -23,6 +23,11 @@ Both are still registered to write into the file output.bin, although this is av
 
 -Output.bin is now cleared of its contents before it is written into (case where output.bin already has bytes written within)
 
+-The executable now reads the number of inputs first prior as opposed to whether it performs an encryption/decryption/scan
+and therefore operates more efficiently since it eliminates operation types by number type which is a check that can be done
+in constant time.  Afterwards, it takes the remainder of the operations and scans from there, making it the executable
+slightly more efficient.
+
 9/9/2015
 
 Binary File I/O:
