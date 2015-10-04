@@ -3,13 +3,24 @@
 
 #include <stdint.h>
 #include <string.h>
-//#include header file
+
+#include <unistd.h>
+//#include header files
+
 
 //NOTE THAT FOR 2D ARRAYS, MATRICES ARE COUNTED BY I,J, WHERE I IS THE ROW, AND J IS THE COLUMN!
 
+//typedef uint8_t state_t[4][4];
+//static state_t* state;
+
 static uint8_t state[8][8];
+
+
 static uint8_t roundkey[4][44];
+
 static uint8_t cipherkey[16];
+
+
 
 #define Columncount 4
 #define Cipherkeylength 16
@@ -81,7 +92,7 @@ static uint8_t ISBoxSub (uint8_t hex){
 static void RoundKeyExpansion (void){
 
 //First 16 bytes of the round key is a copy of the cipher key
-    int i, j, k;
+    int i, j;
     uint8_t placeholder[4];
     for (i = 0; i < Columncount; i++){
         roundkey[0][i] = cipherkey[4*i + 0];
@@ -420,12 +431,6 @@ static void DecryptRounds(void){
     AddRoundKey(i);
 }
 
-
-//d - decrypt (d, file, output file location) - outputs decrypted file
-//e - encrypt (e, cipher, file, output file location) - outputs encrypted file
-//r - retrieve directories (r, file) - outputs as text(?)
-//s - specific directory retrieval (s, file, specific directory, output file location)
-
 int converthexvalue(uint8_t h){
     int value = (int)h;
     if(value < 58 && value > 47){
@@ -437,27 +442,11 @@ int converthexvalue(uint8_t h){
     return value;
 }
 
-
-int main(int argc, char *argv[]){
-    //Retrieve Key
-    char *cipherdirectory;
-    char *targetdirectory;
-    char *basedirectory = "C:\\Users\\Andrew\\cworkspace\\AESdecrypt\\";
-
-    if((cipherdirectory = malloc(strlen(basedirectory)+strlen(argv[2])+1)) != NULL){
-    cipherdirectory[0] = '\0';   // ensures the memory is an empty string
-    strcat(cipherdirectory, basedirectory);
-    strcat(cipherdirectory, argv[2]);
-    } else {
-        perror("Error");
-        printf("Error occurred with allocating memory while searching for cipher key.");
-    }
-
+static void RetrieveCipherKey(char* cipherdirectory){
     FILE *keydata = fopen(cipherdirectory, "rt");
     if (keydata == NULL){
         perror("Error");
         printf("Error occurred while retrieving cipher key.");
-        return 0;
     }
     uint8_t leftvalue, rightvalue, hexvalue;
     int i;
@@ -468,99 +457,151 @@ int main(int argc, char *argv[]){
         cipherkey[i] = hexvalue;
     }
     fclose(keydata);
+}
 
-    //Test to determine if cipher is read correctly
-//    for (i = 0; i < 16; i++){
-//        printf("%02X", cipherkey[i]);
-//    }
+static char* SearchOutputFileName(char* outputfilename){
+    int outputexists = 1;
+    int iteration = 0;
+    while(outputexists == 1){
+        if (access(outputfilename, F_OK) != -1){
+            //create new outputfilename and loop again
+            char *strbase = "output (";
+            char *strend = ")";
+            char outputfilestr[20];
+            char iterationvalue[10];
 
-    if (argc == 4){
-        if((targetdirectory = malloc(strlen(basedirectory)+strlen(argv[3])+1)) != NULL){
+            iteration++;
+
+            strcpy(outputfilestr, "output (");
+            itoa(iteration,iterationvalue, 10);
+            //strcpy(iterationvalue, iteration);
+            strcat(outputfilestr, iterationvalue);
+            //outputfilestr = strcat(strbase, iteration);
+            strcat(outputfilestr, strend);
+            outputfilename = malloc(1 + strlen(outputfilestr));
+            strcpy(outputfilename, outputfilestr);
+            outputfilename[1 + strlen(outputfilestr)] = '\0';
+
+            free(strbase);
+            free(strend);
+        } else {
+            outputexists = 0;
+        }
+    }
+    return outputfilename;
+}
+
+
+//d - decrypt (exe, d, cipher, input file) - outputs decrypted file EBC
+//d - decrypt (exe, d, cipher, input file, iv) - outputs decrypted file CBC
+//e - encrypt (exe, d, cipher, input file) - outputs encrypted file EBC
+//e - encrypt (exe, e, cipher, input file, iv) - outputs encrypted file CBC
+
+//s - specific directory retrieval EBC(exe, s, cipher, inputfile, filetype)
+//s - specific directory retrieval CBC(exe, s, cipher, inputfile, filetype, iv)
+
+
+
+int main(int argc, char *argv[]){
+    //Retrieve Key
+    char *cipherdirectory;
+    char *targetdirectory;
+    char *basedirectory = "C:\\Users\\Andrew\\cworkspace\\AESdecrypt\\";
+
+    if((cipherdirectory = malloc(strlen(basedirectory)+strlen(argv[2])+1)) != NULL){
+        cipherdirectory[0] = '\0';   // ensures the memory is an empty string
+        strcat(cipherdirectory, basedirectory);
+        strcat(cipherdirectory, argv[2]);
+    } else {
+        perror("Error");
+        printf("Error occurred with allocating memory while searching for cipher key.");
+        return 0;
+    }
+
+    RetrieveCipherKey(cipherdirectory);
+
+    //Checks to see if input and output files are valid
+    if((targetdirectory = malloc(strlen(basedirectory)+strlen(argv[3])+1)) != NULL){
         targetdirectory[0] = '\0';   // ensures the memory is an empty string
         strcat(targetdirectory, basedirectory);
         strcat(targetdirectory, argv[3]);
-        } else {
-            perror("Error");
-            printf("Error occurred with allocating memory while searching for binary file.");
-        }
+    } else {
+        perror("Error");
+        printf("Error occurred with allocating memory while searching for binary file.");
+    }
 
-        FILE *inputfile, *outputfile;
-        inputfile = fopen(targetdirectory, "rb");
-        outputfile = fopen("output", "ab+");
-        if (inputfile == NULL){
-            perror("Error");
-            printf("Error occurred while opening file.");
-            return 0;
-        }
-        int counted = 0;
-        int read = 0;
-        uint8_t buffer[16];
-        int i;
+    FILE *inputfile, *outputfile;
+    inputfile = fopen(targetdirectory, "rb");
+    char *outputfilename = "output";
+    outputfilename = SearchOutputFileName(outputfilename);
+    outputfile = fopen(outputfilename, "ab+");
 
-        if (strcmp(argv[1],"d") == 0){
+    if (inputfile == NULL || outputfile == NULL){
+        printf("Error occurred while opening input or output files.\n");
+        return 0;
+    }
+
+    int counted = 0;
+    int read = 0;
+    uint8_t buffer[16];
+    int i;
+
+    if (strcmp(argv[1],"d") == 0){
+        if (argc == 4){
+            //EBC decrypt
             while((read = fread(buffer, 1, 16, inputfile)) > 0){
+                counted = counted + read;
                 for(i=0; i < 16; i++){
-                    if (read != EOF){
-                        //memcpy(*state[(int)i/4][(int)i%4], &buffer[i], sizeof(buffer[i]));
+                    if (i < read){
                         state[i%4][(int)i/4] = buffer[i];
-                        //counted += 1;
-
                     } else {
                         state[i%4][(int)i/4] = (uint8_t)0x00;
                     }
                 }
-                //Perform rijndaels with the current state
                 DecryptRounds();
-
                 for(i=0; i < 16; i++){
                     fwrite(&state[i%4][(int)i/4],sizeof(uint8_t), 1, outputfile);
                 }
-
             }
-        } else if (strcmp(argv[1],"e") == 0){
+        } else if (argc == 5) {
+            //CBC decrypt
+        } else {
+            //Error
+            printf("Input format for decryption is invalid.\n");
+        }
+    } else if (strcmp(argv[1],"e") == 0) {
+        if (argc == 4){
+            //EBC encrypt
             while((read = fread(buffer, 1, 16, inputfile)) > 0){
-                printf("%d",read);
-
+                counted = counted + read;
                 for(i=0; i < 16; i++){
                     if (i < read){
-                        //memcpy(*state[(int)i/4][(int)i%4], &buffer[i], sizeof(buffer[i]));
                         state[i%4][(int)i/4] = buffer[i];
-                        //counted += 1;
-
                     } else {
-                        printf("check");
                         state[i%4][(int)i/4] = (uint8_t)0x00;
                     }
                 }
-                //Perform rijndaels with the current state
                 EncryptRounds();
 
                 for(i=0; i < 16; i++){
                     fwrite(&state[i%4][(int)i/4],sizeof(uint8_t), 1, outputfile);
                 }
-
             }
-
+        } else if (argc == 5){
+            //CBC encrypt
         } else {
-            printf( "Encryption or decryption has not been specified.\n" );
+            //Error
+            printf("Input format for encryption is invalid.\n");
         }
+    } else if (strcmp(argv[1],"s") == 0) {
+        //Currently in progress
+        printf("Function is currently not supported.\n");
+    } else {
+        printf("Invalid input format.\n");
+    }
 
     fclose(inputfile);
     fclose(outputfile);
-
-    }
+    //if ivfile is open, close it
     return 0;
 }
-
-
-
-
-//general encrypt function
-
-//general decrypt function
-
-//function for retrieving all directories (without content)
-
-//function for retrieving a particular directory
-
-//
