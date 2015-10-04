@@ -1,3 +1,18 @@
+10/03/2015
+Architecture changed to conviniently manage both EBC and CBC modes, where the executable initially searches for what process
+the user chooses, then selects either EBC or the CBC mode.  The EBC mode is generally the default mode, and adding an
+additional argument to the end of type (char *IVFile), where IVFile contains the location of the intiialization vector key
+in binary allows the executable to perform encryption and decryption in CBC mode.
+
+Smaller block codes were removed from the main() function and were replaced with functions to give the code an overall cleaner
+appearance and to help the reader/use gain a better understand of what is occuring within the code.
+
+The way the output file is generated has been changed.  By default, it creates a file called output and writes either the
+decrypted or encrypted binary result within the file.  The new method involves checking whether a current output file exists.
+If so, then a new file followed by an integer is created.  For example, if output exists, then output (1) would be created
+next.  This method seemed preferable to deleting the contents of the original output file and rewriting to the file and was 
+therefore implemented.
+
 9/25/2015
 
 Binary File I/O:
