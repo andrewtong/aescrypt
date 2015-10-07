@@ -1,3 +1,11 @@
+10/06/2015
+EBC and CBC options are fully implemented.  CBC mode is automaticaly enabled by adding an additional char* argument to the end.
+Added several functions to make CBC encryption/decryption to essentially be a variation of EBC.  This primarily includes
+function involved the variable xorvector, which is exclusively used for the CBC modes.  I am attempting to find a workaround
+to help make the code cleaner by only enabling various functions and varibles through the usage of header guards.
+
+Main function has had a significant amount of clutter removed to make the code easier to understand.
+
 10/03/2015
 Architecture changed to conviniently manage both EBC and CBC modes, where the executable initially searches for what process
 the user chooses, then selects either EBC or the CBC mode.  The EBC mode is generally the default mode, and adding an
