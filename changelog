@@ -4,6 +4,10 @@ Added several functions to make CBC encryption/decryption to essentially be a va
 function involved the variable xorvector, which is exclusively used for the CBC modes.  I am attempting to find a workaround
 to help make the code cleaner by only enabling various functions and varibles through the usage of header guards.
 
+The initialization vector is accepted via a byte file of size 16 bytes.  For parity reasons, the cipher, which has originally
+been accepted as text format, may be moved to be stored as a byte file.  The primary issue with this is that it complicates
+the task for users who may not be as familiar with how AES operates, which was originally the target audience for this program.
+
 Main function has had a significant amount of clutter removed to make the code easier to understand.
 
 10/03/2015
