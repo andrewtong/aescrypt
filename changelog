@@ -1,3 +1,25 @@
+10/08/2015
+
+Fixed minor syntax errors involved with the CBC encryption/decryption.
+
+Changed the cipher key to be read off a binary file as opposed to a text file.
+
+Changed project name to practicalAES.
+
+Updated Readme with descriptions and images of how to use practicalaes.
+
+10/06/2015
+EBC and CBC options are fully implemented.  CBC mode is automaticaly enabled by adding an additional char* argument to the end.
+Added several functions to make CBC encryption/decryption to essentially be a variation of EBC.  This primarily includes
+function involved the variable xorvector, which is exclusively used for the CBC modes.  I am attempting to find a workaround
+to help make the code cleaner by only enabling various functions and varibles through the usage of header guards.
+
+The initialization vector is accepted via a byte file of size 16 bytes.  For parity reasons, the cipher, which has originally
+been accepted as text format, may be moved to be stored as a byte file.  The primary issue with this is that it complicates
+the task for users who may not be as familiar with how AES operates, which was originally the target audience for this program.
+
+Main function has had a significant amount of clutter removed to make the code easier to understand.
+
 10/03/2015
 Architecture changed to conviniently manage both EBC and CBC modes, where the executable initially searches for what process
 the user chooses, then selects either EBC or the CBC mode.  The EBC mode is generally the default mode, and adding an

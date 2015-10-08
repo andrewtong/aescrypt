@@ -1,30 +1,28 @@
+//include header files
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <stdint.h>
 #include <string.h>
-
 #include <unistd.h>
-//#include header files
-
-
-//NOTE THAT FOR 2D ARRAYS, MATRICES ARE COUNTED BY I,J, WHERE I IS THE ROW, AND J IS THE COLUMN!
-
-//typedef uint8_t state_t[4][4];
-//static state_t* state;
-
-static uint8_t state[8][8];
-
-
-static uint8_t roundkey[4][44];
-
-static uint8_t cipherkey[16];
-
-
 
 #define Columncount 4
 #define Cipherkeylength 16
 #define Rounds 10
+
+//Program Options
+//d - decrypt (exe, d, cipher, input file) - outputs decrypted file EBC
+//d - decrypt (exe, d, cipher, input file, iv) - outputs decrypted file CBC
+//e - encrypt (exe, d, cipher, input file) - outputs encrypted file EBC
+//e - encrypt (exe, e, cipher, input file, iv) - outputs encrypted file CBC
+
+//s - specific directory retrieval EBC(exe, s, cipher, inputfile, filetype)
+//s - specific directory retrieval CBC(exe, s, cipher, inputfile, filetype, iv)
+
+static uint8_t xorvector[16];
+static uint8_t state[4][4];
+static uint8_t roundkey[4][44];
+static uint8_t cipherkey[16];
+static int CBC = 0;
 
 static const uint8_t sbox[256] =   {
   //0     1    2      3     4    5     6     7      8    9     A      B    C     D     E     F
@@ -388,17 +386,24 @@ static void InverseSubstituteBytes(void){
 
 static void PrintState(void){
     int i,j;
-    printf("\n");
     for (i = 0; i < 4; i++){
         for (j = 0; j < 4; j++){
-            printf("%02X", state[j][i]);
+            printf("%02X\n", state[j][i]);
         }
     }
 }
 
-static void EncryptRounds(void){
+static void IVxor(){
+    int i,j;
+    for (i = 0; i < 4; i++){
+        for (j = 0; j < 4; j++){
+            state[j][i] = xorvector[i*4 + j] ^ state[j][i];
+        }
+    }
+}
+
+static void EBCEncryptRounds(void){
     int i;
-    PrintState();
     RoundKeyExpansion();
     AddRoundKey(0);
     for (i = 1; i < Rounds; i++){
@@ -406,15 +411,13 @@ static void EncryptRounds(void){
         ShiftRows();
         MixColumns();
         AddRoundKey(i);
-
     }
     SubstituteBytes();
     ShiftRows();
     AddRoundKey(i);
 }
 
-
-static void DecryptRounds(void){
+static void EBCDecryptRounds(void){
     int i;
     RoundKeyExpansion();
     AddRoundKey(10);
@@ -427,10 +430,36 @@ static void DecryptRounds(void){
         InverseShiftRows();
         InverseSubstituteBytes();
     }
-
     AddRoundKey(i);
 }
 
+static void CBCEncryptRounds(){
+    IVxor();
+    EBCEncryptRounds();
+    int i,j;
+    for (i = 0; i < 4; i++){
+        for (j = 0; j < 4; j++){
+            xorvector[4*i + j] = state[j][i];
+        }
+    }
+}
+
+static void CBCDecryptRounds(){
+    uint8_t ivbuffer[16];
+    int i,j;
+    for (i = 0; i < 4; i++){
+        for (j = 0; j < 4; j++){
+            ivbuffer[4*j + i] = state[j][i];
+        }
+    }
+    EBCDecryptRounds();
+    IVxor();
+    for (i = 0; i < 16; i++){
+        xorvector[i] = ivbuffer[i];
+    }
+}
+
+//Outdated function, used when cipher key was stored in a text file.
 int converthexvalue(uint8_t h){
     int value = (int)h;
     if(value < 58 && value > 47){
@@ -443,18 +472,21 @@ int converthexvalue(uint8_t h){
 }
 
 static void RetrieveCipherKey(char* cipherdirectory){
-    FILE *keydata = fopen(cipherdirectory, "rt");
+    FILE *keydata = fopen(cipherdirectory, "rb");
     if (keydata == NULL){
         perror("Error");
         printf("Error occurred while retrieving cipher key.");
     }
-    uint8_t leftvalue, rightvalue, hexvalue;
+    int read = 0;
     int i;
+    uint8_t buffer[16];
+    read = fread(buffer, 1, 16, keydata);
     for (i = 0; i < 16; i++){
-        leftvalue = converthexvalue(fgetc(keydata));
-        rightvalue = converthexvalue(fgetc(keydata));
-        hexvalue = leftvalue << 4 | rightvalue;
-        cipherkey[i] = hexvalue;
+        if (i < read){
+            cipherkey[i] = buffer[i];
+        } else {
+            cipherkey[i] = (uint8_t)0x00;
+        }
     }
     fclose(keydata);
 }
@@ -474,9 +506,7 @@ static char* SearchOutputFileName(char* outputfilename){
 
             strcpy(outputfilestr, "output (");
             itoa(iteration,iterationvalue, 10);
-            //strcpy(iterationvalue, iteration);
             strcat(outputfilestr, iterationvalue);
-            //outputfilestr = strcat(strbase, iteration);
             strcat(outputfilestr, strend);
             outputfilename = malloc(1 + strlen(outputfilestr));
             strcpy(outputfilename, outputfilestr);
@@ -492,21 +522,42 @@ static char* SearchOutputFileName(char* outputfilename){
 }
 
 
-//d - decrypt (exe, d, cipher, input file) - outputs decrypted file EBC
-//d - decrypt (exe, d, cipher, input file, iv) - outputs decrypted file CBC
-//e - encrypt (exe, d, cipher, input file) - outputs encrypted file EBC
-//e - encrypt (exe, e, cipher, input file, iv) - outputs encrypted file CBC
+static void StoreIVVector(char *basedirectory, char *ivfilename){
+    char *ivdirectory;
+    if((ivdirectory = malloc(strlen(basedirectory)+strlen(ivfilename)+1)) != NULL){
+        ivdirectory[0] = '\0';   // ensures the memory is an empty string
+        strcat(ivdirectory, basedirectory);
+        strcat(ivdirectory, ivfilename);
+    } else {
+        perror("Error");
+        printf("Error occurred with allocating memory while searching for initialization vector.");
+    }
 
-//s - specific directory retrieval EBC(exe, s, cipher, inputfile, filetype)
-//s - specific directory retrieval CBC(exe, s, cipher, inputfile, filetype, iv)
+    FILE *ivdata = fopen(ivdirectory, "rb");
+    if (ivdata == NULL){
+        perror("Error");
+        printf("Error occurred while retrieving initialization vector.");
+    }
 
-
+    int read = 0;
+    uint8_t buffer[16];
+    read = fread(buffer, 1, 16, ivdata);
+    int i;
+    for (i = 0; i < 16; i++){
+        if (i < read){
+            xorvector[i] = buffer[i];
+        } else {
+            xorvector[i] = (uint8_t)0x00;
+        }
+    }
+    fclose(ivdata);
+}
 
 int main(int argc, char *argv[]){
     //Retrieve Key
     char *cipherdirectory;
     char *targetdirectory;
-    char *basedirectory = "C:\\Users\\Andrew\\cworkspace\\AESdecrypt\\";
+    char *basedirectory = "C:\\Users\\Andrew\\cworkspace\\PracticalAES\\";
 
     if((cipherdirectory = malloc(strlen(basedirectory)+strlen(argv[2])+1)) != NULL){
         cipherdirectory[0] = '\0';   // ensures the memory is an empty string
@@ -549,59 +600,68 @@ int main(int argc, char *argv[]){
     if (strcmp(argv[1],"d") == 0){
         if (argc == 4){
             //EBC decrypt
-            while((read = fread(buffer, 1, 16, inputfile)) > 0){
-                counted = counted + read;
-                for(i=0; i < 16; i++){
-                    if (i < read){
-                        state[i%4][(int)i/4] = buffer[i];
-                    } else {
-                        state[i%4][(int)i/4] = (uint8_t)0x00;
-                    }
-                }
-                DecryptRounds();
-                for(i=0; i < 16; i++){
-                    fwrite(&state[i%4][(int)i/4],sizeof(uint8_t), 1, outputfile);
-                }
-            }
         } else if (argc == 5) {
             //CBC decrypt
+            CBC = 1;
+            StoreIVVector(basedirectory, argv[4]);
         } else {
-            //Error
             printf("Input format for decryption is invalid.\n");
+        }
+        while((read = fread(buffer, 1, 16, inputfile)) > 0){
+            counted = counted + read;
+            for(i=0; i < 16; i++){
+                if (i < read){
+                    state[i%4][(int)i/4] = buffer[i];
+                } else {
+                    state[i%4][(int)i/4] = (uint8_t)0x00;
+                }
+            }
+            if (CBC){
+                CBCDecryptRounds();
+            } else {
+                EBCDecryptRounds();
+            }
+            for(i=0; i < 16; i++){
+                fwrite(&state[i%4][(int)i/4],sizeof(uint8_t), 1, outputfile);
+            }
         }
     } else if (strcmp(argv[1],"e") == 0) {
         if (argc == 4){
             //EBC encrypt
-            while((read = fread(buffer, 1, 16, inputfile)) > 0){
-                counted = counted + read;
-                for(i=0; i < 16; i++){
-                    if (i < read){
-                        state[i%4][(int)i/4] = buffer[i];
-                    } else {
-                        state[i%4][(int)i/4] = (uint8_t)0x00;
-                    }
-                }
-                EncryptRounds();
-
-                for(i=0; i < 16; i++){
-                    fwrite(&state[i%4][(int)i/4],sizeof(uint8_t), 1, outputfile);
+        } else if (argc == 5) {
+            //CBC encrypt
+            CBC = 1;
+            StoreIVVector(basedirectory, argv[4]);
+        } else {
+            printf("Input format for encryption is invalid.\n");
+        }
+        while((read = fread(buffer, 1, 16, inputfile)) > 0){
+            counted = counted + read;
+            for(i=0; i < 16; i++){
+                if (i < read){
+                    state[i%4][(int)i/4] = buffer[i];
+                } else {
+                    state[i%4][(int)i/4] = (uint8_t)0x00;
                 }
             }
-        } else if (argc == 5){
-            //CBC encrypt
-        } else {
-            //Error
-            printf("Input format for encryption is invalid.\n");
+            if (CBC){
+                CBCEncryptRounds();
+            } else {
+                EBCEncryptRounds();
+            }
+
+            for(i=0; i < 16; i++){
+                fwrite(&state[i%4][(int)i/4],sizeof(uint8_t), 1, outputfile);
+            }
         }
     } else if (strcmp(argv[1],"s") == 0) {
         //Currently in progress
-        printf("Function is currently not supported.\n");
+        printf("Search function is currently not supported.\n");
     } else {
         printf("Invalid input format.\n");
     }
 
     fclose(inputfile);
     fclose(outputfile);
-    //if ivfile is open, close it
     return 0;
 }
