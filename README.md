@@ -1,6 +1,6 @@
-# Practical AES #
+#Practical AES#
 
-#Introduction#
+###Introduction###
 
 PracticalAES is a function designed to encrypt/decrypt binary files given a cipher key with accordance to AES-128 in both ECB
 and CBC operational modes.  It is designed with the intent of simplying the effort requried by the user with regards to not 
@@ -12,17 +12,14 @@ additional argument to the end automatically enables CBC mode.  The program itse
 non-standard function itoa().  In the case of your compiler not supporting itoa(), the function can be easily replaced
 with a custom, similar itoa() function.
 
-#Usage#
+###Usage###
 
 PracticalAES currently supports encryption and decryption for both EBC and CBC modes.  The command to perform said operations
 via command line, once compiled, are as followed:
 
->EBC Encryption: practicalaes.exe e cipherkey.txt binaryfile.bin
-  
->CBC Encryption: practicalaes.exe e cipherkey.txt binaryfile.bin ivfile.bin
-
->EBC Decryption: practicalaes.exe d cipherkey.txt binaryfile.bin
-  
+>EBC Encryption: practicalaes.exe e cipherkey.txt binaryfile.bin  
+>CBC Encryption: practicalaes.exe e cipherkey.txt binaryfile.bin ivfile.bin  
+>EBC Decryption: practicalaes.exe d cipherkey.txt binaryfile.bin  
 >CBC Decryption: practicalaes.exe d cipherkey.txt binaryfile.bin ivfile.bin
 
 Encrypting/Decrypting binary files is fairly straightforward, where the cipher key is to be written in a text file, while the
@@ -30,7 +27,7 @@ file to be encrypted/decrypted as well as the initialization vector (for CBC onl
 versions of practicalaes will likely require the cipherkey to be written in bytes as well for parity reasons.  The binary 
 file extention is not required, as byte files with no exntention can be used as well.
 
-#Results#
+###Results###
 
 Below are a few tests to demonstrate the accuracy of practicalaes for both the EBC and CBC modes.
 
