@@ -1,3 +1,13 @@
+10/08/2015
+
+Fixed minor syntax errors involved with the CBC encryption/decryption.
+
+Changed the cipher key to be read off a binary file as opposed to a text file.
+
+Changed project name to practicalAES.
+
+Updated Readme with descriptions and images of how to use practicalaes.
+
 10/06/2015
 EBC and CBC options are fully implemented.  CBC mode is automaticaly enabled by adding an additional char* argument to the end.
 Added several functions to make CBC encryption/decryption to essentially be a variation of EBC.  This primarily includes
