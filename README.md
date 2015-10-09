@@ -64,7 +64,7 @@ Cipher Key:
 Initialization Vector:  
 43 F4 3D 32 90 19 3E 4B 92 C9 1A 3D 0F FF 2D 7B
 ```
-
+The resulting outputs for various encryption/decryption scenarios are displayed below.
 ```
 ECB Encryption Result
 39 25 84 1D 02 DC 09 FB DC 11 85 97 19 6A 0B 32 
