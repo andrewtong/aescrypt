@@ -582,6 +582,7 @@ static void CBCDecryptSearch(char *ext, FILE *inputfile, char *basedirectory){
     int filesearchcondition = 0;
     int currentindex = 0;
     char extbuffer[4];
+    FILE *outputfile;
 
     strncpy(extbuffer, ext, sizeof(ext));
     extbuffer[4] = '\0';
@@ -696,9 +697,11 @@ static void CBCDecryptSearch(char *ext, FILE *inputfile, char *basedirectory){
                 printf("Error occurred with allocating memory while performing file search.");
                 break;
             }
+            
+            struct stat st = {0};
 
-            if(stat(outputdestination), &st) == -1 {
-                mkdir(outputdestination, 0700);
+            if(stat(outputdestination, &st) == -1 ){
+                mkdir(outputdestination);
             }
 
             outputfile = fopen(outputdestination, "ab+");
