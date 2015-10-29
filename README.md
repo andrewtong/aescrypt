@@ -1,5 +1,8 @@
 #Practical AES#
 
+PracticalAES currently fully supports EBC and CBC decryption.  A secondary search function that can retrieves decrypted files
+based off their file extention (e.x. '.doc', '.sql', '.txt') is currently being implemented.
+
 ###Introduction###
 
 PracticalAES is a function designed to encrypt/decrypt binary files given a cipher key with accordance to AES-128 in both ECB
