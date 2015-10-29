@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #define Columncount 4
 #define Cipherkeylength 16
@@ -15,13 +17,14 @@
 //e - encrypt (exe, d, cipher, input file) - outputs encrypted file EBC
 //e - encrypt (exe, e, cipher, input file, iv) - outputs encrypted file CBC
 
-//s - specific directory retrieval EBC(exe, s, cipher, inputfile, filetype)
+//s - specific directory retrieval CBC(exe, s, cipher, inputfile, filetype)
 //s - specific directory retrieval CBC(exe, s, cipher, inputfile, filetype, iv)
 
 static uint8_t xorvector[16];
 static uint8_t state[4][4];
 static uint8_t roundkey[4][44];
 static uint8_t cipherkey[16];
+static char filenamebuffer[70];
 static int CBC = 0;
 
 static const uint8_t sbox[256] =   {
@@ -459,8 +462,7 @@ static void CBCDecryptRounds(){
     }
 }
 
-//Outdated function, used when cipher key was stored in a text file.
-int converthexvalue(uint8_t h){
+static char ConvertHexValue(uint8_t h){
     int value = (int)h;
     if(value < 58 && value > 47){
         return value - 48;
@@ -468,7 +470,7 @@ int converthexvalue(uint8_t h){
     if(value < 103 && value > 96){
         return value- 87;
     }
-    return value;
+    return (char)value;
 }
 
 static void RetrieveCipherKey(char* cipherdirectory){
@@ -552,6 +554,167 @@ static void StoreIVVector(char *basedirectory, char *ivfilename){
     }
     fclose(ivdata);
 }
+
+static int IncrementState(FILE *inputfile){
+    uint8_t buffer[16];
+    int read;
+    int i;
+    read = fread(buffer, 1, 16, inputfile);
+    for(i=0; i < 16; i++){
+        if (i < read){
+            state[i%4][(int)i/4] = buffer[i];
+        } else {
+            state[i%4][(int)i/4] = (uint8_t)0x00;
+        }
+    }
+
+    if (read < 16){
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
+
+//In Progress
+static void CBCDecryptSearch(char *ext, FILE *inputfile, char *basedirectory){
+
+    int filesearchcondition = 0;
+    int currentindex = 0;
+    char extbuffer[4];
+
+    strncpy(extbuffer, ext, sizeof(ext));
+    extbuffer[4] = '\0';
+
+    //Scan to see if "./" exists, which likely denotes the start of a file
+    //"." is 2E in hex
+    //"/" is 2F in hex
+
+    int parsenextline = IncrementState(inputfile);
+    CBCDecryptRounds();
+
+    int i;
+
+    while(parsenextline){
+        //if already searching
+        if(filesearchcondition = 0){
+            //search for './', which will indicate the start of a string
+
+            if(strlen(filenamebuffer) == 1){
+                if(state[i%4][(int)i/4] == (uint8_t)0x2F){
+                    filenamebuffer[1] = '/';
+                    filesearchcondition = 1;
+                } else {
+                    memset(&filenamebuffer[0], 0, sizeof(filenamebuffer));
+                }
+            }
+
+            for (i = currentindex; i < 16; i++){
+                if(state[i%4][(int)i/4] == (uint8_t)0x2E){
+                    if (i == 15){
+                        filenamebuffer[0] = '.';
+                    } else {
+                        if(state[i%4][(int)i/4] == (uint8_t)0x2F){
+                            filenamebuffer[0] = '.';
+                            filenamebuffer[1] = '/';
+                            filesearchcondition = 1;
+                        }
+                    }
+                } else if (i == 15){
+                    parsenextline = IncrementState(inputfile);
+                    CBCDecryptRounds();
+                    currentindex = 0;
+                }
+            }
+
+        } else if (filesearchcondition == 1){
+            //know that './' exists, now search for remainder of the file name
+            for (i = currentindex; i < 16; i++){
+                int extcomplete = 0;
+                if(strlen(filenamebuffer) == 66){
+                    memset(&filenamebuffer[0], 0, sizeof(filenamebuffer));
+                    filesearchcondition = 1;
+                    currentindex = i;
+                } else if(state[i%4][(int)i/4] == (uint8_t)0x2E) {
+                    //get length of extension of next characters, compare it against the input extension
+                    int j;
+                    int iterations = 0;
+                    for(j = currentindex; j < 16; j++){
+                        iterations++;
+                        if(j == 15){
+                            //newline check
+                            parsenextline = IncrementState(inputfile);
+                            CBCDecryptRounds();
+                            currentindex = 0;
+                            j = currentindex;
+                        }
+
+                        if(iterations < strlen(ext)){
+                            if(extbuffer[iterations] = state[i%4][(int)i/4]){
+                                filenamebuffer[strlen(filenamebuffer)] = state[i%4][(int)i/4];
+                            }
+                        } else {
+                            filesearchcondition = 0;
+                            currentindex = j;
+                            extcomplete = 1;
+                            continue;
+
+                        }
+
+                        if(iterations == 2){
+                            filesearchcondition = 2;
+                            extcomplete = 1;
+                            continue;
+                        }
+                    }
+                } else {
+                    filenamebuffer[strlen(filenamebuffer)] = ConvertHexValue(state[i%4][(int)i/4]);
+                    if(i == 15){
+                        parsenextline = IncrementState(inputfile);
+                        CBCDecryptRounds();
+                        currentindex = 0;
+                    }
+                }
+                if(extcomplete == 1){
+                    extcomplete = 0;
+                    continue;
+                }
+            }
+
+        } else if(filesearchcondition == 2){
+
+            //http://stackoverflow.com/questions/7430248/creating-a-new-directory-in-c
+            char *outputdestination;
+            memmove(filenamebuffer, filenamebuffer + 1, strlen(filenamebuffer));
+
+            if((outputdestination = malloc(strlen(basedirectory)+strlen(filenamebuffer)+1)) != NULL){
+                outputdestination[0] = '\0';   // ensures the memory is an empty string
+                strcat(outputdestination, basedirectory);
+                strcat(outputdestination, filenamebuffer);
+            } else {
+                perror("Error");
+                printf("Error occurred with allocating memory while performing file search.");
+                break;
+            }
+
+            if(stat(outputdestination), &st) == -1 {
+                mkdir(outputdestination, 0700);
+            }
+
+            outputfile = fopen(outputdestination, "ab+");
+
+            for(i=0; i < 16; i++){
+                //In Progress
+            }
+
+        } else {
+            filesearchcondition = 0;
+        }
+
+    }
+
+}
+
 
 int main(int argc, char *argv[]){
     //Retrieve Key
@@ -656,7 +819,25 @@ int main(int argc, char *argv[]){
         }
     } else if (strcmp(argv[1],"s") == 0) {
         //Currently in progress
-        printf("Search function is currently not supported.\n");
+        if (argc == 5){
+            int ivread = 0;
+            read = fread(buffer, 1, 16, inputfile);
+
+            for (i = 0; i < 16; i++){
+                if (i < read){
+                    xorvector[i] = buffer[i];
+                } else {
+                    xorvector[i] = (uint8_t)0x00;
+                }
+            }
+        } else if (argc == 6){
+            StoreIVVector(basedirectory, argv[5]);
+        } else {
+            printf("Invalid argument input.\n");
+        }
+
+        CBCDecryptSearch(argv[4], inputfile, basedirectory);
+
     } else {
         printf("Invalid input format.\n");
     }
@@ -665,3 +846,4 @@ int main(int argc, char *argv[]){
     fclose(outputfile);
     return 0;
 }
+

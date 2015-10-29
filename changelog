@@ -1,3 +1,14 @@
+10/29/2015
+
+The search function is undergoing implementation.  Essentially what occurs is that the user inputs a file extention (i.e. '.sql')
+which will then be searched by the post CBC decryption as to whether the file exists or not.  If there exists a file type of 
+which the user requests, it will be written out.  The main benefit of this function is that it does not require the user to
+save every file that gets decrypted.
+
+The process behind the search function is as follows.  Files are found based off the character '.'.  For example,
+'.\Andrew\File1\File2\text.doc' would result in the text.doc folder to be found if I were to be searching for the .doc
+extention.  Once the file is found, the contents of the file would be written within their respective folders.
+
 10/08/2015
 
 Fixed minor syntax errors involved with the CBC encryption/decryption.
