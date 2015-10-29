@@ -29,7 +29,7 @@ increment index.  If there is a match, then proceed to State 2.
 Case 3: The character '.' triggers a false alarm and is just listed by itself, increment index.  Continue at State 1
 ```
 
-*State 2: The start of a directory is found, and now the file extension is compared to see if a match exists to user input.*
+*State 2: The start of a directory is found, and now the file extension is compared to see if a match exists to user input.*  
 At this point, there are multiple cases that may occur.  The obvious ones are that the extention either matches, or it 
 doesn't, but there is also a character count in place to prevent buffer overflows in the case that the file name is 
 intentionally designed to cause one.
@@ -41,7 +41,7 @@ Case 2: A file extension match is found to what the user requests.  Set index at
 Case 3: A file extension is found but does not match user request.  Set index at next and proceed to State 1.
 ```
 
-*State 3: A directory with an extension that matches the user request is found.*
+*State 3: A directory with an extension that matches the user request is found.*  
 Once a match is found to what the user wants, the directory is created if it doesn't exist.  Furthermore, the contents of 
 the file are written into the absolute directory until the algorithm can safetly determine that the folder has no more
 contents that need to be written into it.
