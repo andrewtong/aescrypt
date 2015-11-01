@@ -23,8 +23,8 @@ via command line, once compiled, are as followed:
 >EBC Encryption: practicalaes.exe e cipherkey binaryfile  
 >CBC Encryption: practicalaes.exe e cipherkey binaryfile ivfile  
 >EBC Decryption: practicalaes.exe d cipherkey binaryfile  
->CBC Decryption: practicalaes.exe d cipherkey binaryfile ivfile
->File Retrieval (CBC, IV provided): practicalaes.exe s cipherkey binaryfile .ext iv
+>CBC Decryption: practicalaes.exe d cipherkey binaryfile ivfile  
+>File Retrieval (CBC, IV provided): practicalaes.exe s cipherkey binaryfile .ext iv  
 >File Retrieval (CBC, IV assumed to be first 16 bytes): practicalaes.exe s cipherkey binaryfile .ext
 
 Encrypting/Decrypting binary files is fairly straightforward, where the cipher key, binary file to be encrypted/decrypted, as
