@@ -24,10 +24,16 @@ via command line, once compiled, are as followed:
 >CBC Encryption: practicalaes.exe e cipherkey binaryfile ivfile  
 >EBC Decryption: practicalaes.exe d cipherkey binaryfile  
 >CBC Decryption: practicalaes.exe d cipherkey binaryfile ivfile
+>File Retrieval (CBC, IV provided): practicalaes.exe s cipherkey binaryfile .ext iv
+>File Retrieval (CBC, IV assumed to be first 16 bytes): practicalaes.exe s cipherkey binaryfile .ext
 
 Encrypting/Decrypting binary files is fairly straightforward, where the cipher key, binary file to be encrypted/decrypted, as
-well as the initialization vector (if CBC is being used) are written in binary files.  The simplest way to do this is to use
-a hex editor to enter the data, as shown below.  
+well as the initialization vector (if CBC is being used) are written in binary files.  For file retrieval, CBC mode is 
+the only mode supported and comes with the option of either providing a supplementary argument that provides the iv key
+via 16 bytes, or can be performed with an supplementary iv key file, in which it is assumed that the first 16 bytes within
+the binary code that is to be decrypted is the initialization vector.
+
+The simplest way create and edit binary files using hex values is via a hex editor.  An example is shown in the image below.
 
 ![Cipher](https://cloud.githubusercontent.com/assets/10404525/10374070/f03f1ce6-6da5-11e5-8bf4-ee467acaf66f.PNG)
 
@@ -86,6 +92,34 @@ CBC Decryption Result
 83 74 93 A6 48 F3 1F 36 4D E9 F1 D4 C3 67 1B 26 
 86 08 E2 F5 30 97 42 43 D1 63 4B D5 D4 79 4E 8A
 ```
+
+###File Retrieval###
+
+This section demonstrates usage of the file retrieval option for practicalAES.  The following values are encrypted using the
+CBC option using the cipher key and initialization vector provided below.
+```
+Binary File: 
+2E 2F 66 6F 6C 64 65 72 31 2F 66 6F 6C 64 65 72  
+32 2F 73 61 6D 70 6C 65 2E 62 69 6E 68 65 6C 6C  
+6F 77 6F 72 6C 64 00 00 00 00 00 00 00 00 00 00   
+Cipher Key:  
+2B 7E 15 16 28 AE D2 A6 AB F7 15 88 09 CF F4 3C
+Initialization Vector:  
+43 F4 3D 32 90 19 3E 4B 92 C9 1A 3D 0F FF 2D 7B
+```
+
+The binary file points to a directory with a .bin extension, and the contents of the file are written afterwards, as shown
+in the image below.
+
+[searchsampleimage]
+
+Once encrypted, the search function of practicalAES is used, combined with the given cipher key and initialization vector
+to search for files with a .bin extension.  The directory will then be created if it doesn't exist, and the contents of the
+file will be written out.
+
+[commandlinesearchimage]
+
+[resultimage]
 
 
 
