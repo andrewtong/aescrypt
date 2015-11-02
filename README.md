@@ -1,7 +1,7 @@
 #Practical AES#
 
 PracticalAES currently fully supports EBC and CBC decryption.  A secondary search function that can retrieves decrypted files
-based off their file extention (e.x. '.doc', '.sql', '.txt') is currently being implemented.
+based off their file extention (e.x. '.doc', '.sql', '.txt') is partially functional and in the works of being implemented.
 
 ###Introduction###
 
@@ -23,11 +23,17 @@ via command line, once compiled, are as followed:
 >EBC Encryption: practicalaes.exe e cipherkey binaryfile  
 >CBC Encryption: practicalaes.exe e cipherkey binaryfile ivfile  
 >EBC Decryption: practicalaes.exe d cipherkey binaryfile  
->CBC Decryption: practicalaes.exe d cipherkey binaryfile ivfile
+>CBC Decryption: practicalaes.exe d cipherkey binaryfile ivfile  
+>File Retrieval (CBC, IV provided): practicalaes.exe s cipherkey binaryfile .ext iv  
+>File Retrieval (CBC, IV assumed to be first 16 bytes): practicalaes.exe s cipherkey binaryfile .ext
 
 Encrypting/Decrypting binary files is fairly straightforward, where the cipher key, binary file to be encrypted/decrypted, as
-well as the initialization vector (if CBC is being used) are written in binary files.  The simplest way to do this is to use
-a hex editor to enter the data, as shown below.  
+well as the initialization vector (if CBC is being used) are written in binary files.  For file retrieval, CBC mode is 
+the only mode supported and comes with the option of either providing a supplementary argument that provides the iv key
+via 16 bytes, or can be performed with an supplementary iv key file, in which it is assumed that the first 16 bytes within
+the binary code that is to be decrypted is the initialization vector.
+
+The simplest way create and edit binary files using hex values is via a hex editor.  An example is shown in the image below.
 
 ![Cipher](https://cloud.githubusercontent.com/assets/10404525/10374070/f03f1ce6-6da5-11e5-8bf4-ee467acaf66f.PNG)
 
@@ -70,22 +76,54 @@ Initialization Vector:
 The resulting outputs for various encryption/decryption scenarios are displayed below.
 ```
 ECB Encryption Result
-39 25 84 1D 02 DC 09 FB DC 11 85 97 19 6A 0B 32 
-AB 25 81 26 96 E2 AB 09 F3 F5 7F D5 4E 05 A3 04 
-05 DF 61 12 9B 8B 48 E3 0C 8C 96 55 14 FB AE 8B
+D9 0D A0 3F BD BD 20 71 E9 37 DB 6E 42 1D D3 62 
+6B D9 79 1A 7E 9B 58 A4 84 07 C4 47 12 A5 68 FF  
+1C CA 74 05 F5 1B 9E 5B 6B 4E 4C 25 FF 29 89 BD  
 ECB Decryption Result
-CB 13 38 9C 1D 59 C1 D5 0D 11 F6 B9 0C 38 CE 7F 
-B1 FC A2 46 0B A9 2E 01 BB D9 69 D3 6B EA B9 12 
-0F 90 D4 CD 97 0F 9B 60 08 1C C7 F6 5A EE B5 12
+64 F8 C9 20 98 E2 B2 54 E6 09 D2 66 6B CB FD 9A  
+41 E1 63 B1 09 C6 F4 B8 B7 43 4B 25 31 18 30 A8  
+B0 F7 86 89 B7 18 FB 04 6A CE 04 F3 EF B8 63 7E  
 CBC Encryption Result
-12 C4 33 FB E1 96 92 54 D6 9B 8E 6C 3E 7B FC 1E 
-B3 39 EA 13 3F 47 23 BB C1 3C 8A 12 D4 13 78 77 
-A3 CB 72 19 AB 8B EA 7B 82 29 12 87 32 F0 8B 68
+E8 DE C5 0E 7A D0 26 A8 2C 0D 25 0F 4A 18 C3 BF  
+EF 2E 2B 5A 1B 65 07 FA 12 A4 23 67 BA 88 F6 48  
+85 86 40 1B B3 4B 8E 56 8B D4 8E 33 E6 95 75 EE  
 CBC Decryption Result
-9D 3D 2F 05 70 50 FC FD D0 A2 4C D0 56 16 A1 27 
-83 74 93 A6 48 F3 1F 36 4D E9 F1 D4 C3 67 1B 26 
-86 08 E2 F5 30 97 42 43 D1 63 4B D5 D4 79 4E 8A
+27 0C F4 12 08 FB 8C 1F 74 C0 C8 5B 64 34 D0 E1  
+73 A2 95 19 81 9C C4 35 86 72 D3 87 D1 2F 37 9C  
+39 50 5F 07 2F 80 84 93 5C 17 88 08 D7 9B 40 E6  
 ```
+
+###File Retrieval###
+
+This section demonstrates usage of the file retrieval option for practicalAES.  The following values are encrypted using the
+CBC option using the cipher key and initialization vector provided below.
+```
+Binary File: 
+2E 2F 66 6F 6C 64 65 72 31 2F 66 6F 6C 64 65 72  
+32 2F 73 61 6D 70 6C 65 2E 62 69 6E 68 65 6C 6C  
+6F 77 6F 72 6C 64 00 00 00 00 00 00 00 00 00 00   
+Cipher Key:  
+2B 7E 15 16 28 AE D2 A6 AB F7 15 88 09 CF F4 3C
+Initialization Vector:  
+43 F4 3D 32 90 19 3E 4B 92 C9 1A 3D 0F FF 2D 7B
+```
+
+The binary file points to a directory with a .bin extension, and the contents of the file are written afterwards, as shown
+in the image below.
+
+![searchsampleimage](https://cloud.githubusercontent.com/assets/10404525/10872614/feb61536-80ba-11e5-8c0e-c43b862ce1da.PNG)
+
+Once encrypted, the search function of practicalAES is used, combined with the given cipher key and initialization vector
+to search for files with a .bin extension.  The directory will then be created if it doesn't exist, and the contents of the
+file will be written out.
+
+![commandlinesearchimage](https://cloud.githubusercontent.com/assets/10404525/10872616/03c1de0c-80bb-11e5-8a6b-ceb9243005e1.PNG)
+
+In the above photo, I CBC encrypt the searchsample file and by default, the encrypted text is stored in a file named output.
+I am able to immediately use this file via the search option to retrieve the contents of the .bin file as demonstrated
+below.
+
+![resultimage](https://cloud.githubusercontent.com/assets/10404525/10872615/01e37e42-80bb-11e5-8c37-d0ad217d36b2.PNG)
 
 
 
