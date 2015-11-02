@@ -1,7 +1,7 @@
 #Practical AES#
 
 PracticalAES currently fully supports EBC and CBC decryption.  A secondary search function that can retrieves decrypted files
-based off their file extention (e.x. '.doc', '.sql', '.txt') is currently being implemented.
+based off their file extention (e.x. '.doc', '.sql', '.txt') is partially functional and in the works of being implemented.
 
 ###Introduction###
 
