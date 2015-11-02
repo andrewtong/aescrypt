@@ -2,9 +2,12 @@
 
 Implemented basics of search function, which is used to extract individual files from a set of encrypted files depending on
 the file extension the user requests.  The general format is explained in the readme.  Currently there exists a few issues
-with the function.
+with the function, which will likely be fixed in upcoming versions.
 
 Fixed a slight error regarding the CBC decryption that produced an incorrect result.
+
+The sample EBC/CBC encryption and decryption on the readme were based off a different cipher key and have been corrected 
+to demonstrate their correct values.
 
 10/29/2015
 
